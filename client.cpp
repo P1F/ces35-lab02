@@ -76,6 +76,8 @@ int main(int argc, char **argv)
         //write(1, buf, bytes); /* write to standard output */
     }
 
+    printf("\nresponse: '%s'\n", &output[0]);
+
     int status = getResponseStatus(output);
     if (status == 200){
         FILE *outFile = fopen(&filename[0], "w");
