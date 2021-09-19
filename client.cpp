@@ -25,20 +25,19 @@ int main(int argc, char **argv)
     struct sockaddr_in channel; /* holds IP address */
 
     vector<string> parsedURL = urlParser(argv[1]);
-    // parsedURL[0] := protocol (ex.: http)
-    // parsedURL[1] := hostname
-    // parsedURL[2] := port
-    // parsedURL[3] := resource
+    string hostname = parsedURL[1];
+    string port = parsedURL[2];
+    string resource = parsedURL[3];
 
     if (parsedURL.size() != 4)
     {
         printf("Incorrect URL! Correct URL example: http://localhost.com:8080/index.html");
         exit(-1);
     }
-    h = gethostbyname(&parsedURL[1][0]); /* look up host’s IP address */
+    h = gethostbyname(&hostname[0]); /* look up host’s IP address */
     if (!h)
     {
-        printf("gethostbyname failed to locate %s", &parsedURL[1][0]);
+        printf("gethostbyname failed to locate %s", &hostname[0]);
         exit(-1);
     }
 
@@ -51,7 +50,7 @@ int main(int argc, char **argv)
     memset(&channel, 0, sizeof(channel));
     channel.sin_family = AF_INET;
     memcpy(&channel.sin_addr.s_addr, h->h_addr, h->h_length);
-    uint16_t server_port = stoi(parsedURL[2]);
+    uint16_t server_port = stoi(port);
     channel.sin_port = htons(server_port);
     c = connect(s, (struct sockaddr *)&channel, sizeof(channel));
     if (c < 0)
@@ -60,12 +59,12 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    string http_get = "GET /" + parsedURL[3] + " HTTP/1.0\r\nHost:" + parsedURL[1] + "\r\n\r\n";
-    string filename = getFilename(parsedURL[3]);
+    string protocol = "HTTP/1.0";
+    string http_get = "GET /" + resource + " " + protocol + "\r\nHost:" + hostname + "\r\n\r\n";
+    string filename = getFilename(resource);
     /* Connection is now established. Send file name including 0 byte at end. */
     write(s, &http_get[0], http_get.size() + 1);
     /* Go get the file and write it to standard output.*/
-    FILE *outFile = fopen(&filename[0], "w");
     string output = "";
 
     while (1)
@@ -77,13 +76,23 @@ int main(int argc, char **argv)
         //write(1, buf, bytes); /* write to standard output */
     }
 
-    if (responseParser(output) == 200)
-        fprintf(outFile, "%s", &output[0]);
-    else
-    {
-        printf("bad request");
-        exit(-1);
+    int status = getResponseStatus(output);
+    if (status == 200){
+        FILE *outFile = fopen(&filename[0], "w");
+        string body = getBody(output);
+        fprintf(outFile, "%s", &body[0]);
+        fclose(outFile);
+        exit(1);
     }
+    else if (status == 400)
+        printf("Bad Request");
+    else if (status == 404)
+        printf("Not Found");
+    else
+        printf("Unidentified Error");
+
+    close(s);
+    exit(-1);
 }
 
 /* 

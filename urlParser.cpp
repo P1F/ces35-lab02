@@ -16,18 +16,18 @@ string getFilename(string parsedURL)
 vector<string> urlParser(char str[])
 {
     vector<string> parsedURL;
-    string pch;
-    pch = strtok(str, ":/");
+    char* token;
+    token = strtok(str, ":/");
     int cnt = 0;
     while (cnt < 3)
     {
-        parsedURL.push_back(pch);
+        parsedURL.push_back(token);
         if (cnt != 2)
-            pch = strtok(NULL, ":/");
+            token = strtok(NULL, ":/");
         cnt++;
     }
-    pch = strtok(NULL, "");
-    parsedURL.push_back(string(pch));
+    token = strtok(NULL, "");
+    parsedURL.push_back(string(token));
     return parsedURL;
 }
 
