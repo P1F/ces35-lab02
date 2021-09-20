@@ -45,7 +45,9 @@ void *sendData(void *thread_arg)
    ifstream file(source, ios::binary | ios::ate);
    string content_length = to_string(file.tellg());
 
-   if (source.empty())                  // bad request 400 status code
+   bool isOK = false;
+
+   if (source.empty()) // bad request 400 status code
    {
       printf("bad request\n");
       string bad_request = "HTTP/1.1 400 Not Found\r\nAccept-Ranges: bytes\r\nContent-Length: " + content_length + "\r\nContent-Type: text/html; charset=iso-8859-1\r\n\r\n";
@@ -57,35 +59,44 @@ void *sendData(void *thread_arg)
       if (fd < 0) // invalid request 404 status code
       {
          printf("file not found\n");
-         string not_found = "HTTP/1.1 404 Not Found\r\nAccept-Ranges: bytes\r\nContent-Length: " + content_length + "\r\nContent-Type: text/html; charset=iso-8859-1\r\n\r\n";
+         string not_found = "HTTP/1.1 404 Not Found\r\nAccept-Ranges: bytes\r\nContent-Length: 144\r\nContent-Type: text/html; charset=iso-8859-1\r\n\r\n";
          not_found += "<html><head>\r\n<title>404 Not Found</title>\r\n</head><body>\r\n<h1>Not Found</h1>\r\n<p>The requested URL was not found on this server.</p>\r\n</body></html>\r\n";
          write(td->sa_id, &not_found[0], not_found.size());
       }
       else // 200 status code
       {
-         string http_response = "HTTP/1.1 200 OK\r\nAccept-Ranges: bytes\r\nContent-Length: " + content_length + "\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n";
-         write(td->sa_id, &http_response[0], http_response.size());
+         isOK = true;
+         printf("file found. Sending to client socket...\n");
+         /* write response header */
+         char http_response[112] = "HTTP/1.1 200 OK\r\nAccept-Ranges: bytes\r\nContent-Length: 174\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n";
+         write(td->sa_id, http_response, sizeof(http_response));
       }
    }
-   while (1)
+   if (isOK)
    {
-      bytes = read(fd, buf, BUF_SIZE); /* read from file */
-      if (bytes <= 0)
-         break; /* check for end of file */
+      memset(buf, 0, sizeof(buf));
+      /* write response body */
+      while (1)
+      {
+         bytes = read(fd, buf, BUF_SIZE); /* read from file */
+         if (bytes <= 0)
+            break; /* check for end of file */
 
-      /*
-            TODO:
-               - acrescentar cabeçalho HTTP no response
-               - add multithreathling
-         */
-      write(td->sa_id, buf, bytes); /* write bytes to socket */
+         /*
+                  TODO:
+                     - acrescentar cabeçalho HTTP no response
+                     - add multithreathling
+               */
+         write(td->sa_id, buf, bytes); /* write bytes to socket */
+      }
    }
 
-   close(fd); /* close file */
-
+   close(fd);        /* close file */
    close(td->sa_id); /* close connection */
+
    *td->total = *td->total - 1;
    td->is_occupied = false;
+
    pthread_exit(NULL);
 }
 

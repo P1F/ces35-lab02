@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <stdlib.h>
+#include <stdio.h>
 
 using namespace std;
 
@@ -18,7 +20,7 @@ string getFilename(string parsedURL)
 vector<string> urlParser(char str[])
 {
     vector<string> parsedURL;
-    char* token;
+    char *token;
     token = strtok(str, ":/");
     int cnt = 0;
     while (cnt < 3)
@@ -29,20 +31,22 @@ vector<string> urlParser(char str[])
         cnt++;
     }
     token = strtok(NULL, "");
+    if (parsedURL.size() < 2)
+    {
+        printf("Error! There is an incomplete request.\n");
+        return {};
+    }
+    for (auto i : parsedURL[2])
+        if (!isdigit(i))
+        {
+            printf("Error! There isn't a valid port number.\n");
+            return {};
+        }
     parsedURL.push_back(string(token));
+    if (parsedURL.size() != 4)
+    {
+        printf("Error! There is an invalid request.\n");
+        return {};
+    }
     return parsedURL;
 }
-
-// int main()
-// {
-//     char str[] = "http://gaia.cs.umass.edu:80/wireshark-labs/HTTP-wireshark-file1.html";
-//     urlParser(str);
-//     return 0;
-// }
-
-// int main()
-// {
-//     char str[] = "wireshark-labs/HTTP-wireshark-file1.html";
-//     string test = getFilename(str);
-//     return 0;
-// }
