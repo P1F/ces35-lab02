@@ -1,12 +1,12 @@
 /* This is the server code */
- // remember to remove it!
+// remember to remove it!
 #include <iostream>
-#include <thread>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <stdio.h>
 #include <netdb.h>
-#include <stdlib.h>
+#include <pthread.h>
 #include <sys/types.h>
 #include <sys/fcntl.h>
 #include <sys/socket.h>
@@ -15,29 +15,39 @@
 #include "urlParser.cpp"
 #include "requestParser.cpp"
 
-//#define SERVER_PORT 8080 /* arbitrary, but client & server must agree*/
 #define BUF_SIZE 4096 /* block transfer size */
 #define QUEUE_SIZE 10
 using namespace std;
 
-void printHello(int sa, string dir)
+struct thread_data
 {
-   cout << " SocketAccept ID : " << sa << endl;
-   //sleep(10);
+   int *total;               // number of threads runnning simultaneously
+   int sa_id;                // socket accept ID
+   string dir;               // requested file directory
+   bool is_occupied = false; // check if thread is being occupied
+};
+
+void *sendData(void *thread_arg)
+{
+   struct thread_data *td;
+   td = (struct thread_data *)thread_arg;
+   *td->total = *td->total + 1;
+   cout << "SocketAccept ID : " << td->sa_id << endl;
+
    int bytes;
-   char buf[BUF_SIZE];         /* buffer for outgoing file */
-   read(sa, buf, BUF_SIZE); /* read file name from socket */
-   string source = getRequestSource(buf, dir);
-   cout << "dir + source: " << source << "\n";
+   char buf[BUF_SIZE];                             /* buffer for outgoing file */
+   read(td->sa_id, buf, BUF_SIZE);                 /* read file name from socket */
+   string source = getRequestSource(buf, td->dir); /* file directory */
+
    /* Get and return the file. */
    int fd = open(&source[0], O_RDONLY); /* open the file to be sent back */
    if (fd < 0)
       printf("open failed");
-   string httpResponse = "HTTP/1.1 200 OK\r\nAccept-Ranges: bytes\r\nContent-Length: 128\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n";
-   write(sa, &httpResponse[0], httpResponse.size());
+   string http_response = "HTTP/1.1 200 OK\r\nAccept-Ranges: bytes\r\nContent-Length: 128\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n";
+   write(td->sa_id, &http_response[0], http_response.size());
    while (1)
    {
-      bytes = read(fd, &source[0], BUF_SIZE); /* read from file */
+      bytes = read(fd, buf, BUF_SIZE); /* read from file */
       if (bytes <= 0)
          break; /* check for end of file */
 
@@ -46,13 +56,14 @@ void printHello(int sa, string dir)
                - acrescentar cabeçalho HTTP no response
                - add multithreathling
          */
-      write(sa, &source[0], bytes); /* write bytes to socket */
+      write(td->sa_id, buf, bytes); /* write bytes to socket */
    }
-   close(fd); /* close file */
-   close(sa); /* close connection */
-   printf("ble");
-   printf("bla");
-};
+   close(fd);        /* close file */
+   close(td->sa_id); /* close connection */
+   *td->total = *td->total - 1;
+   td->is_occupied = false;
+   pthread_exit(NULL);
+}
 
 int main(int argc, char *argv[])
 {
@@ -62,9 +73,9 @@ int main(int argc, char *argv[])
 
    struct hostent *he;
    he = gethostbyname(host_name);
-   in_addr ip_address = *((struct in_addr *)he->h_addr_list[0]);
 
    int s, b, l, sa, on = 1;
+   int total = 0;
 
    struct sockaddr_in channel; /* holds IP address */
    /* Build address structure to bind to socket. */
@@ -89,6 +100,9 @@ int main(int argc, char *argv[])
       exit(-1);
    }
 
+   pthread_t threads[QUEUE_SIZE];
+   struct thread_data td[QUEUE_SIZE];
+
    l = listen(s, QUEUE_SIZE); /* specify queue size */
    if (l < 0)
    {
@@ -98,7 +112,8 @@ int main(int argc, char *argv[])
    /* Socket is now set up and bound. Wait for connection and process it. */
    while (1)
    {
-      cout << "Trying connection" << "\n";
+      cout << "Trying connection"
+           << "\n";
       sa = accept(s, 0, 0); /* block for connection request */
 
       if (sa < 0)
@@ -107,9 +122,28 @@ int main(int argc, char *argv[])
          exit(-1);
       }
 
-      cout << "Connection accepted -> sa = " << sa << endl;
+      cout << "accept successfully"
+           << "\n";
 
-      thread t(printHello, sa, dir);
-      t.join();
+      int rc;
+      if (total < 10)
+      {
+         int i = total;
+         while (td[total].is_occupied)
+         {
+            i = (i + 1) % QUEUE_SIZE;
+         }
+         td[i].is_occupied = true;
+         td[i].sa_id = sa;
+         td[i].dir = dir;
+         td[i].total = &total;
+
+         rc = pthread_create(&threads[i], NULL, sendData, (void *)&td[i]);
+         if (rc)
+         {
+            cout << "Error:unable to create thread," << rc << " of SocketAccept ID " << sa << endl;
+            exit(-1);
+         }
+      }
    }
 }
