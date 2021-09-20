@@ -36,9 +36,9 @@ void *sendData(void *thread_arg)
    cout << "SocketAccept ID : " << td->sa_id << endl;
 
    int bytes;
-   char buf[BUF_SIZE];                             /* buffer for outgoing file */
-   read(td->sa_id, buf, BUF_SIZE);                 /* read file name from socket */
-   string source = getRequestSource(buf, td->dir); /* file directory */
+   char request_buf[BUF_SIZE];                             /* buffer for outgoing file */
+   read(td->sa_id, request_buf, BUF_SIZE);                 /* read file name from socket */
+   string source = getRequestSource(request_buf, td->dir); /* file directory */
    /* Get and return the file. */
    int fd = open(&source[0], O_RDONLY); /* open the file to be sent back */
    /* Calculate file content length. */
@@ -74,11 +74,12 @@ void *sendData(void *thread_arg)
    }
    if (isOK)
    {
-      memset(buf, 0, sizeof(buf));
+      char body_buf[4096] = "";
       /* write response body */
       while (1)
       {
-         bytes = read(fd, buf, BUF_SIZE); /* read from file */
+         bytes = read(fd, body_buf, BUF_SIZE); /* read from file */
+         cout << "\nbody_buf: " << body_buf << endl;
          if (bytes <= 0)
             break; /* check for end of file */
 
@@ -87,7 +88,7 @@ void *sendData(void *thread_arg)
                      - acrescentar cabeçalho HTTP no response
                      - add multithreathling
                */
-         write(td->sa_id, buf, bytes); /* write bytes to socket */
+         write(td->sa_id, body_buf, bytes); /* write bytes to socket */
       }
    }
 

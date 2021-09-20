@@ -20,7 +20,7 @@ using namespace std;
 int main(int argc, char **argv)
 {
     int c, s, bytes;
-    char buf[BUFSIZE];          /* buffer for incoming file */
+    char buf[BUFSIZE] = "";          /* buffer for incoming file */
     struct hostent *h;          /* info about server */
     struct sockaddr_in channel; /* holds IP address */
 
