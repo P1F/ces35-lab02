@@ -86,7 +86,7 @@ int main(int argc, char **argv)
         fclose(outFile);
     }
 
-    printf("%s%s", &response[1][0], &response[2][0]);
+    printf("%s%s\n", &response[1][0], &response[2][0]);
 
     close(s);
     exit(-1);

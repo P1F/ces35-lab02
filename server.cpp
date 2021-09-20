@@ -43,7 +43,7 @@ void *sendData(void *thread_arg)
    int fd = open(&source[0], O_RDONLY); /* open the file to be sent back */
    /* Calculate file content length. */
    ifstream file(source, ios::binary | ios::ate);
-   string content_length = to_string(file.tellg());
+   string content_length = to_string((int)file.tellg());
 
    bool isOK = false;
 
@@ -67,9 +67,11 @@ void *sendData(void *thread_arg)
       {
          isOK = true;
          printf("file found. Sending to client socket...\n");
+         string msg = "HTTP/1.1 200 OK\r\nAccept-Ranges: bytes\r\nContent-Length: " + content_length + "\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n";
+         char http_header[msg.length()];
+         strcpy(http_header, msg.c_str());
          /* write response header */
-         char http_response[112] = "HTTP/1.1 200 OK\r\nAccept-Ranges: bytes\r\nContent-Length: 174\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n";
-         write(td->sa_id, http_response, sizeof(http_response));
+         write(td->sa_id, http_header, sizeof(http_header));
       }
    }
    if (isOK)
