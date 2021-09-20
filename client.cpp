@@ -58,6 +58,7 @@ int main(int argc, char **argv)
         printf("connect failed");
         exit(-1);
     }
+    printf("connecting...");
 
     string protocol = "HTTP/1.0";
     string http_get = "GET /" + resource + " " + protocol + "\r\nHost:" + hostname + "\r\n\r\n";
@@ -73,6 +74,7 @@ int main(int argc, char **argv)
         if (bytes <= 0)
             break; /* check for end of file */
         output += buf;
+        printf("teste");
         //write(1, buf, bytes); /* write to standard output */
     }
 
@@ -84,6 +86,7 @@ int main(int argc, char **argv)
         string body = getBody(output);
         fprintf(outFile, "%s", &body[0]);
         fclose(outFile);
+        close(s);
         exit(1);
     }
     else if (status == 400)
