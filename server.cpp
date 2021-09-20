@@ -38,13 +38,30 @@ void *sendData(void *thread_arg)
    char buf[BUF_SIZE];                             /* buffer for outgoing file */
    read(td->sa_id, buf, BUF_SIZE);                 /* read file name from socket */
    string source = getRequestSource(buf, td->dir); /* file directory */
-
    /* Get and return the file. */
    int fd = open(&source[0], O_RDONLY); /* open the file to be sent back */
-   if (fd < 0)
-      printf("open failed");
-   string http_response = "HTTP/1.1 200 OK\r\nAccept-Ranges: bytes\r\nContent-Length: 128\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n";
-   write(td->sa_id, &http_response[0], http_response.size());
+   if (source.empty())                  // bad request 400 status code
+   {
+      printf("bad request\n");
+      string badRequest = "HTTP/1.1 400 Not Found\r\nAccept-Ranges: bytes\r\nContent-Length: 128\r\nContent-Type: text/html; charset=iso-8859-1\r\n\r\n";
+      badRequest += "<html><head>\r\n<title>400 Bad Request</title>\r\n</head><body>\r\n<h1>Bad Request</h1>\r\n<p>Your browser sent a request that this server could not understand.<br />\r\n</p>\r\n</body></html>\r\n";
+      write(td->sa_id, &badRequest[0], badRequest.size());
+   }
+   else
+   {
+      if (fd < 0) // invalid request 404 status code
+      {
+         printf("file not found\n");
+         string notFound = "HTTP/1.1 404 Not Found\r\nAccept-Ranges: bytes\r\nContent-Length: 128\r\nContent-Type: text/html; charset=iso-8859-1\r\n\r\n";
+         notFound += "<html><head>\r\n<title>404 Not Found</title>\r\n</head><body>\r\n<h1>Not Found</h1>\r\n<p>The requested URL was not found on this server.</p>\r\n</body></html>\r\n";
+         write(td->sa_id, &notFound[0], notFound.size());
+      }
+      else // 200 status code
+      {
+         string http_response = "HTTP/1.1 200 OK\r\nAccept-Ranges: bytes\r\nContent-Length: 128\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n";
+         write(td->sa_id, &http_response[0], http_response.size());
+      }
+   }
    while (1)
    {
       bytes = read(fd, buf, BUF_SIZE); /* read from file */
@@ -58,7 +75,9 @@ void *sendData(void *thread_arg)
          */
       write(td->sa_id, buf, bytes); /* write bytes to socket */
    }
-   close(fd);        /* close file */
+
+   close(fd); /* close file */
+
    close(td->sa_id); /* close connection */
    *td->total = *td->total - 1;
    td->is_occupied = false;
