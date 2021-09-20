@@ -1,6 +1,7 @@
 /* This is the server code */
 // remember to remove it!
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -40,25 +41,29 @@ void *sendData(void *thread_arg)
    string source = getRequestSource(buf, td->dir); /* file directory */
    /* Get and return the file. */
    int fd = open(&source[0], O_RDONLY); /* open the file to be sent back */
+   /* Calculate file content length. */
+   ifstream file(source, ios::binary | ios::ate);
+   string content_length = to_string(file.tellg());
+
    if (source.empty())                  // bad request 400 status code
    {
       printf("bad request\n");
-      string badRequest = "HTTP/1.1 400 Not Found\r\nAccept-Ranges: bytes\r\nContent-Length: 128\r\nContent-Type: text/html; charset=iso-8859-1\r\n\r\n";
-      badRequest += "<html><head>\r\n<title>400 Bad Request</title>\r\n</head><body>\r\n<h1>Bad Request</h1>\r\n<p>Your browser sent a request that this server could not understand.<br />\r\n</p>\r\n</body></html>\r\n";
-      write(td->sa_id, &badRequest[0], badRequest.size());
+      string bad_request = "HTTP/1.1 400 Not Found\r\nAccept-Ranges: bytes\r\nContent-Length: " + content_length + "\r\nContent-Type: text/html; charset=iso-8859-1\r\n\r\n";
+      bad_request += "<html><head>\r\n<title>400 Bad Request</title>\r\n</head><body>\r\n<h1>Bad Request</h1>\r\n<p>Your browser sent a request that this server could not understand.<br />\r\n</p>\r\n</body></html>\r\n";
+      write(td->sa_id, &bad_request[0], bad_request.size());
    }
    else
    {
       if (fd < 0) // invalid request 404 status code
       {
          printf("file not found\n");
-         string notFound = "HTTP/1.1 404 Not Found\r\nAccept-Ranges: bytes\r\nContent-Length: 128\r\nContent-Type: text/html; charset=iso-8859-1\r\n\r\n";
-         notFound += "<html><head>\r\n<title>404 Not Found</title>\r\n</head><body>\r\n<h1>Not Found</h1>\r\n<p>The requested URL was not found on this server.</p>\r\n</body></html>\r\n";
-         write(td->sa_id, &notFound[0], notFound.size());
+         string not_found = "HTTP/1.1 404 Not Found\r\nAccept-Ranges: bytes\r\nContent-Length: " + content_length + "\r\nContent-Type: text/html; charset=iso-8859-1\r\n\r\n";
+         not_found += "<html><head>\r\n<title>404 Not Found</title>\r\n</head><body>\r\n<h1>Not Found</h1>\r\n<p>The requested URL was not found on this server.</p>\r\n</body></html>\r\n";
+         write(td->sa_id, &not_found[0], not_found.size());
       }
       else // 200 status code
       {
-         string http_response = "HTTP/1.1 200 OK\r\nAccept-Ranges: bytes\r\nContent-Length: 128\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n";
+         string http_response = "HTTP/1.1 200 OK\r\nAccept-Ranges: bytes\r\nContent-Length: " + content_length + "\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n";
          write(td->sa_id, &http_response[0], http_response.size());
       }
    }
