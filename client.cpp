@@ -1,7 +1,8 @@
-/* This page contains a client program that can request a file from the server program
-* on the next page. The server responds by sending the whole file.
+/*
+    Alunos: Eduardo Menezes e Rodrigo Teixeira
+    CES35 LAB 1
+    Client Code
 */
-#include <bits/stdc++.h> // remember to remove it!
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
@@ -13,18 +14,19 @@
 #include "urlParser.cpp"
 #include "responseParser.cpp"
 
-//#define SERVER_PORT 8080 /* arbitrary, but client & server must agree */
 #define BUFSIZE 4096 /* block transfer size */
 using namespace std;
 
 int main(int argc, char **argv)
 {
     int c, s, bytes;
-    char buf[BUFSIZE];          /* buffer for incoming file */
+    char buf[BUFSIZE] = "";     /* buffer for incoming file */
     struct hostent *h;          /* info about server */
     struct sockaddr_in channel; /* holds IP address */
 
     vector<string> parsedURL = urlParser(argv[1]);
+    if (!parsedURL.size())
+        return 0;
     string hostname = parsedURL[1];
     string port = parsedURL[2];
     string resource = parsedURL[3];
@@ -58,7 +60,7 @@ int main(int argc, char **argv)
         printf("connect failed");
         exit(-1);
     }
-    printf("connecting...");
+    printf("connecting...\n");
 
     string protocol = "HTTP/1.0";
     string http_get = "GET /" + resource + " " + protocol + "\r\nHost:" + hostname + "\r\n\r\n";
@@ -74,38 +76,18 @@ int main(int argc, char **argv)
         if (bytes <= 0)
             break; /* check for end of file */
         output += buf;
-        printf("teste");
-        //write(1, buf, bytes); /* write to standard output */
     }
 
-    printf("\nresponse: '%s'\n", &output[0]);
-
-    int status = getResponseStatus(output);
-    if (status == 200){
+    vector<string> response = getResponse(output);
+    if (response[0] == "200"){
         FILE *outFile = fopen(&filename[0], "w");
-        string body = getBody(output);
+        string body = response[2];
         fprintf(outFile, "%s", &body[0]);
         fclose(outFile);
-        close(s);
-        exit(1);
     }
-    else if (status == 400)
-        printf("Bad Request");
-    else if (status == 404)
-        printf("Not Found");
-    else
-        printf("Unidentified Error");
+
+    printf("%s\n\n%s\n", &response[1][0], &response[2][0]);
 
     close(s);
     exit(-1);
 }
-
-/* 
-    TODO:
-    - Pegar STATUS CODE
-        - SE 404 ou 400
-            - write no console mensagem de erro
-        - SE 200
-            - Fazer o parsing do body (talvez pelo '\r\n\r\n')
-            - write no fd do arquivo a ser gerado
-*/
