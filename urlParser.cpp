@@ -1,3 +1,8 @@
+/*
+    Alunos: Eduardo Menezes e Rodrigo Teixeira
+    CES35 LAB 1
+    Client URL parser
+*/
 #include <iostream>
 #include <string>
 #include <vector>

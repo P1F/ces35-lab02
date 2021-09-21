@@ -1,3 +1,8 @@
+/*
+    Alunos: Eduardo Menezes e Rodrigo Teixeira
+    CES35 LAB 1
+    Response according to message status code
+*/
 #include <iostream>
 #include <string>
 
@@ -6,7 +11,7 @@ using namespace std;
 vector<string> getResponse(string response)
 {
     string header = response.substr(0, response.find("\r\n\r\n"));
-    string body = response.substr(response.find("\r\n\r\n"));
+    string body = response.substr(response.find("\r\n\r\n")+4);
 
     if (response.find("200 OK") != -1)
         return {"200", header, body};

@@ -1,7 +1,8 @@
-/* This page contains a client program that can request a file from the server program
-* on the next page. The server responds by sending the whole file.
+/*
+    Alunos: Eduardo Menezes e Rodrigo Teixeira
+    CES35 LAB 1
+    Client Code
 */
-#include <bits/stdc++.h> // remember to remove it!
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
@@ -13,14 +14,13 @@
 #include "urlParser.cpp"
 #include "responseParser.cpp"
 
-//#define SERVER_PORT 8080 /* arbitrary, but client & server must agree */
 #define BUFSIZE 4096 /* block transfer size */
 using namespace std;
 
 int main(int argc, char **argv)
 {
     int c, s, bytes;
-    char buf[BUFSIZE] = "";          /* buffer for incoming file */
+    char buf[BUFSIZE] = "";     /* buffer for incoming file */
     struct hostent *h;          /* info about server */
     struct sockaddr_in channel; /* holds IP address */
 
@@ -86,18 +86,8 @@ int main(int argc, char **argv)
         fclose(outFile);
     }
 
-    printf("%s%s\n", &response[1][0], &response[2][0]);
+    printf("%s\n\n%s\n", &response[1][0], &response[2][0]);
 
     close(s);
     exit(-1);
 }
-
-/* 
-    TODO:
-    - Pegar STATUS CODE
-        - SE 404 ou 400
-            - write no console mensagem de erro
-        - SE 200
-            - Fazer o parsing do body (talvez pelo '\r\n\r\n')
-            - write no fd do arquivo a ser gerado
-*/
