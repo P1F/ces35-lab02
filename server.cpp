@@ -1,6 +1,6 @@
 /*
     Alunos: Eduardo Menezes e Rodrigo Teixeira
-    CES35 LAB 1
+    CES35 LAB 2
     Server code
 */
 #include <iostream>
